@@ -6,16 +6,7 @@ import { useDebounce } from 'react-use'
 import { getTrendingMovies, updateSearchCount } from '/appwrite.js'
 
 const API_BASE_URL = 'https://api.themoviedb.org/3';
-
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
-
-const API_OPTIONS = {
-  method: 'GET',
-  headers: {
-    accept: 'application/json',
-    Authorization: `Bearer ${API_KEY}`
-  }
-}
 
 const App = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
@@ -27,8 +18,6 @@ const App = () => {
 
   const [trendingMovies, setTrendingMovies] = useState([]);
 
-  // Debounce the search term to prevent making too many API requests
-  // by waiting for the user to stop typing for 500ms
   useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm])
 
   const fetchMovies = async (query = '') => {
@@ -37,18 +26,18 @@ const App = () => {
 
     try {
       const endpoint = query
-        ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
-        : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+        ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}&api_key=${API_KEY}`
+        : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc&api_key=${API_KEY}`;
 
-      const response = await fetch(endpoint, API_OPTIONS);
+      const response = await fetch(endpoint, { method: 'GET' });
 
-      if(!response.ok) {
+      if (!response.ok) {
         throw new Error('Failed to fetch movies');
       }
 
       const data = await response.json();
 
-      if(data.Response === 'False') {
+      if (data.Response === 'False') {
         setErrorMessage(data.Error || 'Failed to fetch movies');
         setMovieList([]);
         return;
@@ -56,7 +45,7 @@ const App = () => {
 
       setMovieList(data.results || []);
 
-      if(query && data.results.length > 0) {
+      if (query && data.results.length > 0) {
         await updateSearchCount(query, data.results[0]);
       }
     } catch (error) {
@@ -70,7 +59,6 @@ const App = () => {
   const loadTrendingMovies = async () => {
     try {
       const movies = await getTrendingMovies();
-
       setTrendingMovies(movies);
     } catch (error) {
       console.error(`Error fetching trending movies: ${error}`);
